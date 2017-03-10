@@ -1,0 +1,16 @@
+{
+	"name": "dpromise",
+	"authors": [
+		"tosuke"
+	],
+	"description": "ES2015 like Promises for dlang",
+	"copyright": "Copyright © 2017, tosuke",
+	"license": "MIT",
+
+	"dependencies": {
+		"eventcore": "~>0.8.4"
+	},
+
+  "targetPath": "bin",
+  "workingDirectory": "bin"
+}
