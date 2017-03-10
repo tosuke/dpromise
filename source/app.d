@@ -2,14 +2,10 @@ import std.stdio;
 import std.datetime, core.time;
 import eventcore.core;
 
+import dpromise.async;
 import dpromise.promise;
 
 void main() {
-  sleepAsync(1.seconds).then({
-    "hoge".writeln;
-    eventDriver.core.exit;
-  });
-
   promise!int((res, rej) {
     res(10);
   }).then((a){
@@ -22,6 +18,13 @@ void main() {
     return e.msg;
   }).then((a){
     a.writeln;
+  });
+
+  async({
+    await(sleepAsync(1.seconds));
+    "hoge".writeln;
+    await(sleepAsync(1.seconds));
+    eventDriver.core.exit;
   });
 
   //eventDriver.core.exit;
