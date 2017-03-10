@@ -20,12 +20,14 @@ in {
     }
   });
 
-  void inner() @trusted {
+  void inner() {
     if(!gen.empty) {
       gen.front.then(() @trusted {
         gen.popFront;
         inner();
-      }, (e){throw e;});
+      }, (e){
+        rej(e);
+      });
     }
   }
   inner();
@@ -36,6 +38,7 @@ in {
     res();
   }
 });}
+
 
 T await(T)(Promise!T promise) @trusted
 in {
