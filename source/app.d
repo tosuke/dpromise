@@ -20,7 +20,7 @@ void main() {
     a.writeln;
   });
 
-  async({
+  auto p = async({
     await(sleepAsync(1.seconds));
     "hoge".writeln;
     await(sleepAsync(1.seconds));
