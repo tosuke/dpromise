@@ -189,27 +189,63 @@ public final class Promise(T) : Awaiter if(!is(Unqual!T : Exception) && !is(Unqu
           child.next();
         }else {
           static if(!is(Flatten!S == void)) {
-            static assert(0);
+            onFulfillment().then(
+              (v) @trusted {
+                child._value = v;
+                child.next();
+              },
+              (e) @trusted {
+                child._value = e;
+                child.next();
+              }
+            );
           }else {
-            static assert(0);
+            onFulfillment().then(
+              () @trusted {
+                child._isPending = false;
+                child.next();
+              },
+              (e) @trusted {
+                child._value = e;
+                child.next();
+              }
+            );
           }
         }
       }
 
-      void reject(Exception e) @trusted {
+      void reject(Exception exception) @trusted {
         static if(!is(U : Promise!K, K)) {
           static if(!is(Flatten!U == void)) {
-            child._value = onRejection(e);
+            child._value = onRejection(exception);
           }else {
-            onRejection(e);
+            onRejection(exception);
             child._isPending = false;
           }
           child.next();
         }else {
           static if(!is(Flatten!U == void)) {
-            static assert(0);
+            onRejection(exception).then(
+              (v) @trusted {
+                child._value = v;
+                child.next();
+              },
+              (e) @trusted {
+                child._value = e;
+                child.next();
+              }
+            );
           }else {
-            static assert(0);
+            onRejection(exception).then(
+              () @trusted {
+                child._isPending = false;
+                child.next();
+              },
+              (e) @trusted {
+                child._value = e;
+                child.next();
+              }
+            );
           }
         }
       }

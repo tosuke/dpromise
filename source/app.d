@@ -20,6 +20,16 @@ void main() {
     a.writeln;
   });
 
+  promise!int((res, rej) {
+    res(10);
+  }).then((a){
+    return promise!int((res, rej) {
+      res(a + 800);
+    });
+  }).then((a){
+    a.writeln;
+  });
+
   async({
     await(sleepAsync(1.seconds));
     "hoge".writeln;
