@@ -20,7 +20,7 @@ in {
     }
   });
 
-  void inner() @trusted {
+  void inner() {
     if(gen.empty) {
       static if(!is(T == void)) {
         res(value);
@@ -31,11 +31,14 @@ in {
       gen.front.then(() @trusted {
         gen.popFront;
         inner();
-      }, (e){throw e;});
+      }, (e){
+        rej(e);
+      });
     }
   }
   inner();
 });}
+
 
 T await(T)(Promise!T promise) @trusted
 in {
