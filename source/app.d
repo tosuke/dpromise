@@ -4,6 +4,7 @@ import eventcore.core;
 
 import dpromise.async;
 import dpromise.promise;
+import dpromise.utils;
 
 void main() {
   promise!int((res, rej) {
@@ -20,18 +21,12 @@ void main() {
     a.writeln;
   });
 
-  auto p = async({
+  runEventloop({
     await(sleepAsync(1.seconds));
     "hoge".writeln;
     await(sleepAsync(1.seconds));
-    eventDriver.core.exit;
+    "piyo".writeln;
   });
-
-  //eventDriver.core.exit;
-  ExitReason er;
-  do {
-    er = eventDriver.core.processEvents(Duration.max);
-  }while(er == ExitReason.idle);
 }
 
 Promise!void sleepAsync(in Duration dur) @safe nothrow { return promise!void((res, rej) {
@@ -42,4 +37,5 @@ Promise!void sleepAsync(in Duration dur) @safe nothrow { return promise!void((re
   });
   eventDriver.timers.set(tm, dur, dur);
 });}
+
 
