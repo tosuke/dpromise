@@ -12,7 +12,7 @@ ExitReason runEventloop(in Duration timeout = Duration.max) @safe nothrow {
   return er;
 }
 
-ExitReason runEventloop(Promise!void entryPoint, in Duration timeout = Duration.max) @safe
+ExitReason runEventloop(Promise!void entryPoint, in Duration timeout = Duration.max)
 in {
   assert(entryPoint !is null);
 }body {
@@ -31,7 +31,7 @@ in {
   return er;
 }
 
-ExitReason runEventloop(void delegate() @safe entryPoint, in Duration timeout = Duration.max) @safe
+ExitReason runEventloop(void delegate() entryPoint, in Duration timeout = Duration.max)
 in {
   assert(entryPoint !is null);
 }body {

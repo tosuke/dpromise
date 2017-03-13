@@ -5,27 +5,27 @@ import std.variant : Algebraic, tryVisit, visit;
 
 private template ResolveFunc(T) {
   static if(!is(T == void)) {
-    alias ResolveFunc = void delegate(T) @safe nothrow;
+    alias ResolveFunc = void delegate(T) nothrow;
   }else {
-    alias ResolveFunc = void delegate() @safe nothrow;
+    alias ResolveFunc = void delegate() nothrow;
   }
 }
-private alias RejectFunc(T) = void delegate(Exception) @safe nothrow;
-public Promise!T promise(T)(void delegate(ResolveFunc!T resolve, RejectFunc!T reject) @safe executer) @safe nothrow
+private alias RejectFunc(T) = void delegate(Exception) nothrow;
+public Promise!T promise(T)(void delegate(ResolveFunc!T resolve, RejectFunc!T reject) executer) nothrow
 if(!is(Unqual!T : Exception) && !is(Unqual!T : Promise!K, K)) {
-return new Promise!T((ret) @safe nothrow {
+return new Promise!T((ret) nothrow {
 
   static if(!is(T == void)) {
-    void resolve(T v) @trusted nothrow {
+    void resolve(T v) nothrow {
       Either!T a = v;
       ret(a);
     }
   }else {
-    void resolve() @safe nothrow {
+    void resolve() nothrow {
       ret(Either!T.init);
     }
   }
-  void reject(Exception e) @trusted nothrow {
+  void reject(Exception e) nothrow {
     Either!T a = e;
     ret(a);
   }
@@ -47,14 +47,14 @@ public abstract class Awaiter {
     bool isRejected() const nothrow;
   }
 
-  abstract public Awaiter then(void delegate() @safe onFulfillment, void delegate(Exception) @safe onRejection) @safe nothrow;
+  abstract public Awaiter then(void delegate() onFulfillment, void delegate(Exception) onRejection) nothrow;
 }
 
 public final class Promise(T) : Awaiter if(!is(Unqual!T : Exception) && !is(Unqual!T : Promise!K, K)) {
   protected {
     Either!T _value;
     static if(is(T == void)) bool _isPending = true;
-    void delegate() @safe nothrow next;
+    void delegate() nothrow next;
   }
 
   @property @trusted /*@nogc*/ {
@@ -95,8 +95,8 @@ public final class Promise(T) : Awaiter if(!is(Unqual!T : Exception) && !is(Unqu
     this.next = (){};
   }
 
-  package this(void delegate(void delegate(Either!T) @safe nothrow) @safe nothrow executer) @safe nothrow {
-    void ret(Either!T v) @trusted nothrow {
+  package this(void delegate(void delegate(Either!T) nothrow) nothrow executer) nothrow {
+    void ret(Either!T v) nothrow {
       if(!this.isPending) return;
       try {
         this._value = v;
@@ -116,15 +116,15 @@ public final class Promise(T) : Awaiter if(!is(Unqual!T : Exception) && !is(Unqu
     }
   }
 
-  override Promise!void then(void delegate() @safe onFulfillment, void delegate(Exception) @safe onRejection) @safe nothrow {
+  override Promise!void then(void delegate() onFulfillment, void delegate(Exception) onRejection) nothrow {
     return thenImpl(onFulfillment, onRejection);
   }
 
   static if(!is(T == void)) {
     public Promise!(Flatten!S) then(S, U)(
-      S delegate(T) @safe onFulfillment,
-      U delegate(Exception) @safe onRejection = cast(S delegate(Exception) @safe)null
-    ) @safe nothrow if(is(Flatten!S == Flatten!U))
+      S delegate(T) onFulfillment,
+      U delegate(Exception) onRejection = cast(S delegate(Exception))null
+    ) nothrow if(is(Flatten!S == Flatten!U))
     in {
       assert(onFulfillment !is null);
     }body {
@@ -132,7 +132,7 @@ public final class Promise(T) : Awaiter if(!is(Unqual!T : Exception) && !is(Unqu
         onRejection = (e){ throw e; };
       }
       return thenImpl(
-        () @safe {
+        () {
           return onFulfillment(this.value);
         },
         onRejection
@@ -141,9 +141,9 @@ public final class Promise(T) : Awaiter if(!is(Unqual!T : Exception) && !is(Unqu
   }
 
   public Promise!(Flatten!S) then(S, U)(
-    S delegate() @safe onFulfillment,
-    U delegate(Exception) @safe onRejection = cast(S delegate(Exception) @safe)null
-  ) @safe nothrow if(is(Flatten!S == Flatten!U))
+    S delegate() onFulfillment,
+    U delegate(Exception) onRejection = cast(S delegate(Exception))null
+  ) nothrow if(is(Flatten!S == Flatten!U))
   in {
     assert(onFulfillment !is null);
   }body {
@@ -156,7 +156,7 @@ public final class Promise(T) : Awaiter if(!is(Unqual!T : Exception) && !is(Unqu
     );
   }
 
-  public Promise!T fail(T delegate(Exception) @safe onRejection) @safe nothrow {
+  public Promise!T fail(T delegate(Exception) onRejection) nothrow {
     if(onRejection is null) {
       onRejection = (e){ throw e; };
     }
@@ -169,16 +169,16 @@ public final class Promise(T) : Awaiter if(!is(Unqual!T : Exception) && !is(Unqu
   }
 
   private Promise!(Flatten!S) thenImpl(S, U)(
-    S delegate() @safe onFulfillment,
-    U delegate(Exception) @safe onRejection
-  ) @safe nothrow if(is(Flatten!S == Flatten!U))
+    S delegate() onFulfillment,
+    U delegate(Exception) onRejection
+  ) nothrow if(is(Flatten!S == Flatten!U))
   in {
     assert(onFulfillment !is null);
     assert(onRejection !is null);
   }body {
     auto child = new Promise!(Flatten!S)();
-    this.next = () @trusted nothrow {
-      void fulfill() @trusted {
+    this.next = () nothrow {
+      void fulfill() {
         static if(!is(S : Promise!K, K)) {
           static if(!is(Flatten!S == void)) {
             child._value = onFulfillment();
@@ -190,22 +190,22 @@ public final class Promise(T) : Awaiter if(!is(Unqual!T : Exception) && !is(Unqu
         }else {
           static if(!is(Flatten!S == void)) {
             onFulfillment().then(
-              (v) @trusted {
+              (v) {
                 child._value = v;
                 child.next();
               },
-              (e) @trusted {
+              (e) {
                 child._value = e;
                 child.next();
               }
             );
           }else {
             onFulfillment().then(
-              () @trusted {
+              () {
                 child._isPending = false;
                 child.next();
               },
-              (e) @trusted {
+              (e) {
                 child._value = e;
                 child.next();
               }
@@ -214,7 +214,7 @@ public final class Promise(T) : Awaiter if(!is(Unqual!T : Exception) && !is(Unqu
         }
       }
 
-      void reject(Exception exception) @trusted {
+      void reject(Exception exception) {
         static if(!is(U : Promise!K, K)) {
           static if(!is(Flatten!U == void)) {
             child._value = onRejection(exception);
@@ -226,22 +226,22 @@ public final class Promise(T) : Awaiter if(!is(Unqual!T : Exception) && !is(Unqu
         }else {
           static if(!is(Flatten!U == void)) {
             onRejection(exception).then(
-              (v) @trusted {
+              (v) {
                 child._value = v;
                 child.next();
               },
-              (e) @trusted {
+              (e) {
                 child._value = e;
                 child.next();
               }
             );
           }else {
             onRejection(exception).then(
-              () @trusted {
+              () {
                 child._isPending = false;
                 child.next();
               },
-              (e) @trusted {
+              (e) {
                 child._value = e;
                 child.next();
               }

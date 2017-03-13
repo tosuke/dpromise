@@ -6,10 +6,10 @@ import core.thread : Fiber;
 import std.concurrency : Generator, yield;
 import std.traits;
 
-Promise!T async(T)(T delegate() @safe dg) @safe nothrow if(!is(Unqual!T : Exception) && !is(Unqual!T : Promise!K, K))
+Promise!T async(T)(T delegate() dg) nothrow if(!is(Unqual!T : Exception) && !is(Unqual!T : Promise!K, K))
 in {
   assert(dg !is null);
-}body { return promise!T((res, rej) @trusted {
+}body { return promise!T((res, rej) {
   static if(!is(T == void)) T value;
 
   auto gen = new Generator!Awaiter({
@@ -28,7 +28,7 @@ in {
         res();
       }
     }else {
-      gen.front.then(() @trusted {
+      gen.front.then(() {
         gen.popFront;
         inner();
       }, (e){
@@ -40,7 +40,7 @@ in {
 });}
 
 
-T await(T)(Promise!T promise) @trusted
+T await(T)(Promise!T promise)
 in {
   bool inAsyncFunction() {
     return (cast(Generator!Awaiter)Fiber.getThis) !is null;
