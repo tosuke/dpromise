@@ -5,6 +5,7 @@ import eventcore.core;
 import dpromise.async;
 import dpromise.promise;
 import dpromise.utils;
+import dpromise.task;
 
 void main() {
   promise!int((res, rej) {
@@ -18,6 +19,14 @@ void main() {
   }).fail((e){
     return e.msg;
   }).then((a){
+    a.writeln;
+  });
+
+  task(() shared {
+    import core.thread;
+    Thread.sleep(2.seconds);
+    return 1;
+  }).then((a) {
     a.writeln;
   });
 

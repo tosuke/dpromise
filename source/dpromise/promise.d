@@ -12,7 +12,10 @@ private template ResolveFunc(T) {
 }
 private alias RejectFunc(T) = void delegate(Exception) nothrow;
 public Promise!T promise(T)(void delegate(ResolveFunc!T resolve, RejectFunc!T reject) executer) nothrow
-if(!is(Unqual!T : Exception) && !is(Unqual!T : Promise!K, K)) {
+if(!is(Unqual!T : Exception) && !is(Unqual!T : Promise!K, K))
+in {
+  assert(executer !is null);
+} body {
 return new Promise!T((ret) nothrow {
 
   static if(!is(T == void)) {
@@ -38,7 +41,7 @@ return new Promise!T((ret) nothrow {
 });}
 
 
-private alias Either(T) = Algebraic!(T, Exception);
+alias Either(T) = Algebraic!(T, Exception);
 
 public abstract class Awaiter {
   abstract @property @safe /*@nogc*/ nothrow {
@@ -95,7 +98,7 @@ public final class Promise(T) : Awaiter if(!is(Unqual!T : Exception) && !is(Unqu
     this.next = (){};
   }
 
-  package this(void delegate(void delegate(Either!T) nothrow) nothrow executer) nothrow {
+  package(dpromise) this(void delegate(void delegate(Either!T) nothrow) nothrow executer) nothrow {
     void ret(Either!T v) nothrow {
       if(!this.isPending) return;
       try {
