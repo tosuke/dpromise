@@ -59,13 +59,28 @@ Returns: Untyped array promise of bytes read
 
 Throws: FileException on error
 
+Bugs: Probabry cause SEGV in unittest
+
+Examples:
+----------------------------------------------
+import dpromise.utils, dpromise.async;
+
+runEventloop({
+  write("hoge.txt", "hogehogepiyopiyo");
+  scope(exit) remove("hoge.txt");
+
+  auto s = await(readAsync("hoge.txt"));
+  assert(s == cast(void[])"hogehogepiyopiyo");
+});
+----------------------------------------------
+
 See_Also: std.file.read
 */
 Promise!(void[]) readAsync(string path, size_t up_to = size_t.max) nothrow {
   return promise!(void[])((res, rej) {
     const fid = eventDriver.files.open(path, FileOpenMode.read);
     const size = std.file.getSize(path);
-    auto buffer = new ubyte[](size);
+    auto buffer = new ubyte[](size < up_to ? up_to : size);
 
     eventDriver.files.read(fid, 0, buffer, IOMode.all, (id, status, nbytes) @trusted nothrow {
       scope(exit) eventDriver.files.close(id);
@@ -81,17 +96,6 @@ Promise!(void[]) readAsync(string path, size_t up_to = size_t.max) nothrow {
   });
 }
 
-///
-unittest {
-  import dpromise.utils, dpromise.async;
-  runEventloop({
-    write("hoge.txt", "hogehogepiyopiyo");
-    scope(exit) remove("hoge.txt");
-    auto s = await(readAsync("hoge.txt"));
-    assert(s == cast(void[])"hogehogepiyopiyo");
-  });
-}
-
 
 /**
 Read file with asynchronous IO and returns data as string(validate with std.utf.validate)
@@ -102,6 +106,21 @@ Params:
 Returns: string promise read
 
 Throws: FileException on error
+
+Bugs: Probabry cause SEGV in unittest
+
+Examples:
+-------------------------------------------
+import dpromise.utils, dpromise.async;
+
+runEventloop({
+  write("hoge.txt", "hogehogepiyopiyo");
+  scope(exit) remove("hoge.txt");
+
+  auto s = await(readTextAsync("hoge.txt"));
+  assert(s == "hogehogepiyopiyo");
+});
+--------------------------------------------
 
 See_Also: std.file.readText
 */
@@ -114,15 +133,4 @@ Promise!S readTextAsync(S = string)(string path) nothrow if(isSomeString!S) {
       return result;
     }
   );
-}
-
-
-unittest {
-  import dpromise.utils, dpromise.async;
-  runEventloop({
-    write("hoge.txt", "hogehogepiyopiyo");
-    scope(exit) remove("hoge.txt");
-    auto s = await(readTextAsync("hoge.txt"));
-    assert(s == "hogehogepiyopiyo");
-  });
 }
