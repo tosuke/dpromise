@@ -23,6 +23,7 @@ in {
     },
     (e) {
       exception = e;
+      eventDriver.core.exit;
     }
   );
 

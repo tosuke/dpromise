@@ -1,7 +1,10 @@
 .dub
 bin
 docs.json
+docs
 dub.selections.json
+dpromise-test-library
+libdpromise.a
 __dummy.html
 *.o
 *.obj

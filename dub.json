@@ -9,8 +9,5 @@
 
 	"dependencies": {
 		"eventcore": "~>0.8.4"
-	},
-
-  "targetPath": "bin",
-  "workingDirectory": "bin"
+	}
 }
