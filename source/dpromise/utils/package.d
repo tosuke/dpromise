@@ -31,7 +31,7 @@ in {
   return er;
 }
 
-ExitReason runEventloop(void delegate() entryPoint, in Duration timeout = Duration.max)
+ExitReason runEventloop(in void delegate() entryPoint, in Duration timeout = Duration.max)
 in {
   assert(entryPoint !is null);
 }body {

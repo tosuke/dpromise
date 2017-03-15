@@ -54,7 +54,7 @@ in {
         shared(Exception) exception;
         try {
           static if(!is(T == void)) {
-            static if(hasIndirections!T) {
+            static if(hasAliasing!T) {
               value = cast(shared)executer();
             } else {
               value = executer();
@@ -81,7 +81,7 @@ in {
 private struct None{}
 
 template Shared(T) {
-  static if(hasIndirections!T) {
+  static if(hasAliasing!T) {
     alias Shared = shared(T);
   } else {
     alias Shared = T;

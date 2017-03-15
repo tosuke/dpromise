@@ -1,0 +1,4 @@
+name "task_example"
+dependency "dpromise" path="../../"
+dependency "eventcore" version="*"
+targetPath "bin"
