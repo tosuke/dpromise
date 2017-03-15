@@ -15,4 +15,13 @@ void main() {
   }).then((a) {
     a.writeln;
   });
+
+  //Error handling
+  promise!string((resolve, reject) {
+    throw new Exception("test");
+  }).fail((e) {
+    return e.msg;
+  }).then((a) {
+    a.writeln;
+  });
 }
