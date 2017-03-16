@@ -4,7 +4,7 @@ import dpromise.promise;
 import eventcore.core, eventcore.driver;
 import std.range.primitives, std.traits;
 import std.file;
-
+/+
 /**
 Write buffer to file path with asynchronous IO.
 
@@ -134,3 +134,4 @@ Promise!S readTextAsync(S = string)(string path) nothrow if(isSomeString!S) {
     }
   );
 }
++/

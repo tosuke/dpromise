@@ -4,6 +4,7 @@ import dpromise.promise, dpromise.async;
 import eventcore.core;
 import std.datetime, core.time;
 
+/+
 ExitReason runEventloop(in Duration timeout = Duration.max) @safe nothrow {
   ExitReason er;
   do {
@@ -38,4 +39,5 @@ in {
 }body {
   return runEventloop(async(entryPoint));
 }
++/
 

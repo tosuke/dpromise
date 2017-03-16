@@ -4,7 +4,7 @@ import core.time : Duration;
 import dpromise.promise;
 import eventcore.core, eventcore.driver;
 
-
+/+
 Promise!void sleepAsync(in Duration dur) nothrow {
   return promise!void((res, rej) {
     auto tm = eventDriver.timers.create();
@@ -14,3 +14,4 @@ Promise!void sleepAsync(in Duration dur) nothrow {
     eventDriver.timers.set(tm, dur, dur);
   });
 }
++/

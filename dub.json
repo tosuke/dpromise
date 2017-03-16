@@ -8,7 +8,8 @@
 	"license": "MIT",
 
 	"dependencies": {
-		"eventcore": "~>0.8.4"
+		"eventcore": "~>0.8.4",
+    "libuv": "~>1.11.0"
 	},
 
   "buildTypes": {
