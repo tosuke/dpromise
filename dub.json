@@ -9,5 +9,13 @@
 
 	"dependencies": {
 		"eventcore": "~>0.8.4"
-	}
+	},
+
+  "buildTypes": {
+    "ddoc": {
+      "dflags": [
+        "-Xfdocs.json"
+      ]
+    }
+  }
 }
