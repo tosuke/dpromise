@@ -1,3 +1,4 @@
+///
 module dpromise.utils.timer;
 
 import core.time;
@@ -5,16 +6,24 @@ import dpromise.promise;
 import deimos.libuv.uv, dpromise.internal.libuv;
 
 
-Promise!void sleepAsync(Duration dur) {
+/++
+Sleep in asynchronous while $(D dur).
+
+Params:
+  dur = Duration of sleep
+
+See_Also: core.thread.Thread.sleep
++/
+nothrow Promise!void sleepAsync(Duration dur) {
   return promise!void((res, rej) {
     sleepAsyncWithCallback(dur, res);
   });
 }
 
-unittest {
-  import std.stdio : writeln;
-  import std.datetime : Clock, SysTime, UTC;
+///
+@system unittest {
   import dpromise.utils : runEventloop;
+  import std.datetime : Clock, SysTime, UTC;
 
   auto startTime = Clock.currTime(UTC());
 
@@ -28,11 +37,18 @@ unittest {
 }
 
 
+/++
+Sleep in asynchronous while $(D dur) and after call $(D callback).
+
+Params:
+  dur = Duration of sleep
+  callback = function call after sleep
++/
 nothrow @safe @nogc void sleepAsyncWithCallback(Duration dur, void function() nothrow callback)
 in {
   assert(callback !is null);
 } body {
-  extern(C) nothrow static void systemCallback(uv_timer_t* handle) {
+  extern(C) nothrow @trusted static void systemCallback(uv_timer_t* handle) {
     auto data = *cast(DataContainer!(typeof(callback))*)handle.data;
     auto callback = data.data;
     callback();
@@ -46,11 +62,10 @@ in {
   asyncTimerBase(dur, Duration.zero, &systemCallback, cast(void*)callback);
 }
 
-static import std.datetime;
-private std.datetime.SysTime startTime;
-unittest {
+///
+@safe unittest {
+  import dpromise.utils : runEventloop;
   import std.datetime : Clock, UTC;
-  import dpromise.utils;
 
   startTime = Clock.currTime(UTC());
 
@@ -64,13 +79,16 @@ unittest {
 
   runEventloop();
 }
+static import std.datetime;
+private std.datetime.SysTime startTime;
 
 
-nothrow @safe @nogc void sleepAsyncWithCallback(Duration dur, void delegate() nothrow callback)
+/// ditto
+nothrow @safe void sleepAsyncWithCallback(Duration dur, void delegate() nothrow callback)
 in {
   assert(callback !is null);
 } body {
-  extern(C) nothrow static void systemCallback(uv_timer_t* handle) {
+  extern(C) @trusted nothrow static void systemCallback(uv_timer_t* handle) {
     auto data = *cast(DataContainer!(typeof(callback))*)handle.data;
     auto callback = data.data;
     callback();
@@ -92,9 +110,10 @@ in {
   asyncTimerBase(dur, Duration.zero, &systemCallback, callback);
 }
 
-unittest {
+///
+@safe unittest {
+  import dpromise.utils : runEventloop;
   import std.datetime : Clock, UTC;
-  import dpromise.utils;
 
   auto startTime = Clock.currTime(UTC());
 

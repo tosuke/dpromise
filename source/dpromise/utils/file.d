@@ -1,7 +1,6 @@
 module dpromise.utils.file;
 
 import dpromise.promise;
-import eventcore.core, eventcore.driver;
 import std.range.primitives, std.traits;
 import std.file;
 /+

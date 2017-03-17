@@ -15,11 +15,11 @@
     "ddoc": {
       "dflags": [
         "-Xfdocs.json"
+      ],
+      "postBuildCommands": [
+        "dub run ddox -- filter docs.json --unittest-examples --only-documented",
+        "dub run scod -- generate-html --navigation-type=ModuleTree docs.json docs"
       ]
     }
-  },
-
-  "-ddoxFilterArgs": [
-    "--unittest-examples"
-  ]
+  }
 }

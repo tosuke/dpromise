@@ -1,12 +1,12 @@
 module dpromise.task;
 
 import dpromise.promise;
-import eventcore.core, eventcore.driver;
 import std.concurrency;
 import std.parallelism : totalCPUs;
 import std.traits;
 
 
+/+
 Promise!T task(T)(T delegate() shared executer) nothrow
 if(!is(Unqual!T : Exception) && !is(Unqual!T : Awaiter))
 in {
@@ -87,3 +87,4 @@ template Shared(T) {
     alias Shared = T;
   }
 }
++/
