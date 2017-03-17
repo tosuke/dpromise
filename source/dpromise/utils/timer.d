@@ -13,12 +13,15 @@ Promise!void sleepAsync(Duration dur) {
 
 unittest {
   import std.stdio : writeln;
+  import std.datetime : Clock, SysTime, UTC;
   import dpromise.utils : runEventloop;
 
-  sleepAsync(1.seconds).then({
-    try {
-      "hog".writeln;
-    } catch(Exception){}
+  auto startTime = Clock.currTime(UTC());
+
+  sleepAsync(100.msecs).then({
+    auto dur = Clock.currTime(UTC()) - startTime;
+    assert(dur + 4.msecs > 100.msecs);
+    assert(dur - 4.msecs < 100.msecs);
   });
 
   runEventloop();
@@ -30,15 +33,36 @@ in {
   assert(callback !is null);
 } body {
   extern(C) nothrow static void systemCallback(uv_timer_t* handle) {
-    auto callback = cast(typeof(callback))handle.data;
+    auto data = *cast(DataContainer!(typeof(callback))*)handle.data;
+    auto callback = data.data;
     callback();
 
     scope(exit) {
       import core.stdc.stdlib : free;
+      free(handle.data);
       free(handle);
     }
   }
   asyncTimerBase(dur, Duration.zero, &systemCallback, cast(void*)callback);
+}
+
+static import std.datetime;
+private std.datetime.SysTime startTime;
+unittest {
+  import std.datetime : Clock, UTC;
+  import dpromise.utils;
+
+  startTime = Clock.currTime(UTC());
+
+  sleepAsyncWithCallback(100.msecs,() nothrow {
+    try {
+      auto dur = Clock.currTime(UTC()) - startTime;
+      assert(dur + 4.msecs > 100.msecs);
+      assert(dur - 4.msecs < 100.msecs);
+    } catch(Exception e) {}
+  });
+
+  runEventloop();
 }
 
 
@@ -47,7 +71,8 @@ in {
   assert(callback !is null);
 } body {
   extern(C) nothrow static void systemCallback(uv_timer_t* handle) {
-    auto callback = *cast(typeof(&callback))handle.data;
+    auto data = *cast(DataContainer!(typeof(callback))*)handle.data;
+    auto callback = data.data;
     callback();
 
     scope(exit) {
@@ -59,21 +84,34 @@ in {
     }
   }
 
-  void* data;
   () @trusted nothrow {
     import core.memory : GC;
     GC.addRoot(callback.ptr);
-
-    auto dg = castMalloc!(typeof(callback));
-    *dg = callback;
-    data = dg;
   }();
 
-  asyncTimerBase(dur, Duration.zero, &systemCallback, data);
+  asyncTimerBase(dur, Duration.zero, &systemCallback, callback);
+}
+
+unittest {
+  import std.datetime : Clock, UTC;
+  import dpromise.utils;
+
+  auto startTime = Clock.currTime(UTC());
+
+  sleepAsyncWithCallback(100.msecs, () nothrow {
+    try {
+      auto dur = Clock.currTime(UTC()) - startTime;
+      assert(dur + 4.msecs > 100.msecs);
+      assert(dur - 4.msecs < 100.msecs);
+    } catch(Exception e) {}
+  });
+
+  runEventloop();
 }
 
 
-nothrow @safe @nogc void asyncTimerBase(Duration timeout, Duration interval, uv_timer_cb callback, void* data)
+
+private nothrow @safe @nogc void asyncTimerBase(T)(Duration timeout, Duration interval, uv_timer_cb callback, T data)
 in {
   assert(callback !is null);
 } body {
@@ -84,64 +122,10 @@ in {
     import core.memory : GC;
     auto timer = castMalloc!(uv_timer_t);
     uv_timer_init(localLoop, timer);
-    timer.data = data;
-    uv_timer_start(timer, callback, timeout_msec, interval_msec);
+    auto e = uv_timer_start(timer, callback, timeout_msec, interval_msec);
+    auto pdata = castMalloc!(DataContainer!T);
+    pdata.error = cast(uv_errno_t)e;
+    pdata.data = data;
+    timer.data = pdata;
   }();
 }
-
-nothrow @safe @nogc void sleepAsyncWithCallback(Duration dur, void delegate() callback)
-in {
-  assert(callback !is null);
-} body {
-  extern(C) static void systemCallback(uv_timer_t* handle) {
-    auto callback = *(cast(typeof(&callback))handle.data);
-    callback();
-    scope(exit) {
-      import core.stdc.stdlib : free;
-      import core.memory : GC;
-      GC.removeRoot(callback.ptr);
-      free(handle.data);
-      free(cast(void*)handle);
-    }
-  }
-
-  auto msecs = to!("msecs", ulong)(cast(TickDuration)dur);
-
-  () @trusted {
-    import core.stdc.stdlib : malloc;
-    import core.memory : GC;
-    uv_timer_t* timer = castMalloc!uv_timer_t;
-    uv_timer_init(localLoop, timer);
-
-    GC.addRoot(cast(void*)callback.ptr);
-    auto dg = castMalloc!(void delegate());
-    *dg = callback;
-    timer.data = dg;
-
-    uv_timer_start(timer, &systemCallback, msecs, 0);
-  }();
-}
-
-
-unittest {
-  import std.stdio;
-  import dpromise.utils;
-
-  sleepAsyncWithCallback(1.seconds, {
-    "piyo".writeln;
-  });
-
-  runEventloop();
-}
-
-/+
-Promise!void sleepAsync(in Duration dur) nothrow {
-  return promise!void((res, rej) {
-    auto tm = eventDriver.timers.create();
-    eventDriver.timers.wait(tm, (tm) @trusted nothrow {
-      res();
-    });
-    eventDriver.timers.set(tm, dur, dur);
-  });
-}
-+/

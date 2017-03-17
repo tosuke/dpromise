@@ -7,29 +7,26 @@ package(dpromise) {
 }
 
 static this() {
-  localLoop = uv_loop_new();
+  localLoop = castMalloc!(uv_loop_t);
   uv_loop_init(localLoop);
 }
 
-/*static ~this() {
-  uv_loop_delete(localLoop);
-}*/
+static ~this() {
+  uv_loop_close(localLoop);
+}
 
-package(dpromise) @nogc nothrow T* castMalloc(T)() {
+
+package(dpromise):
+@nogc nothrow T* castMalloc(T)() {
   import core.stdc.stdlib : malloc;
   return cast(T*)malloc(T.sizeof);
 }
 
 
-package(dpromise) struct DelegateHandler {
-  alias handler this;
-  void delegate() handler;
-
-  @safe nothrow @nogc this(void delegate() dg) {
-    handler = dg;
-  }
-
-  void opCall() {
-    handler();
-  }
+struct DataContainer(T) {
+  uv_errno_t error;
+  T data;
 }
+
+
+
