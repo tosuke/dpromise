@@ -3,6 +3,7 @@ module dpromise.utils.file;
 import dpromise.promise;
 import std.range.primitives, std.traits;
 import std.file;
+import deimos.libuv.uv, dpromise.internal.libuv;
 /+
 /**
 Write buffer to file path with asynchronous IO.

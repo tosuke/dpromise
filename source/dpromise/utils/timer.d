@@ -16,7 +16,11 @@ See_Also: core.thread.Thread.sleep
 +/
 nothrow Promise!void sleepAsync(Duration dur) {
   return promise!void((res, rej) {
-    sleepAsyncWithCallback(dur, res);
+    nothrow void f(Exception e) {
+      e is null ? res() : rej(e);
+    }
+
+    sleepAsyncWithCallback(dur, &f);
   });
 }
 
@@ -44,14 +48,15 @@ Params:
   dur = Duration of sleep
   callback = function call after sleep
 +/
-nothrow @safe @nogc void sleepAsyncWithCallback(Duration dur, void function() nothrow callback)
+nothrow @safe @nogc void sleepAsyncWithCallback(Duration dur, void function(Exception) nothrow callback)
 in {
   assert(callback !is null);
 } body {
   extern(C) nothrow @trusted static void systemCallback(uv_timer_t* handle) {
     auto data = *cast(DataContainer!(typeof(callback))*)handle.data;
     auto callback = data.data;
-    callback();
+    auto e = factory(data.error);
+    callback(e);
 
     scope(exit) {
       import core.stdc.stdlib : free;
@@ -84,14 +89,15 @@ private std.datetime.SysTime startTime;
 
 
 /// ditto
-nothrow @safe void sleepAsyncWithCallback(Duration dur, void delegate() nothrow callback)
+nothrow @safe void sleepAsyncWithCallback(Duration dur, void delegate(Exception) nothrow callback)
 in {
   assert(callback !is null);
 } body {
   extern(C) @trusted nothrow static void systemCallback(uv_timer_t* handle) {
     auto data = *cast(DataContainer!(typeof(callback))*)handle.data;
     auto callback = data.data;
-    callback();
+    auto e = factory(data.error);
+    callback(e);
 
     scope(exit) {
       import core.memory : GC;
