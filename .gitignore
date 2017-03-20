@@ -8,4 +8,5 @@ libdpromise.a
 __dummy.html
 *.o
 *.obj
+*.lst
 __test__*__

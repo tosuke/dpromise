@@ -1,41 +1,66 @@
+///
 module dpromise.utils;
 
 import dpromise.promise, dpromise.async;
-import eventcore.core;
-import std.datetime, core.time;
+import deimos.libuv.uv;
+import dpromise.internal.libuv;
 
-ExitReason runEventloop(in Duration timeout = Duration.max) @safe nothrow {
-  ExitReason er;
-  do {
-    er = eventDriver.core.processEvents(timeout);
-  }while(er == ExitReason.idle);
-  return er;
+
+void runEventloop() @safe nothrow {
+  () @trusted {
+    uv_run(localLoop, uv_run_mode.UV_RUN_DEFAULT);
+  }();
 }
 
-ExitReason runEventloop(Promise!void entryPoint, in Duration timeout = Duration.max)
-in {
-  assert(entryPoint !is null);
-}body {
-  Exception exception;
-  entryPoint.then(
-    () {
-      eventDriver.core.exit;
-    },
-    (e) {
-      exception = e;
-      eventDriver.core.exit;
-    }
-  );
 
-  auto er = runEventloop(timeout);
+T runEventloop(T)(scope Promise!T promise) @safe
+in {
+  assert(promise !is null);
+} body {
+  static if(!is(T == void)) {
+    T value;
+    Exception exception;
+
+    promise.then(
+      (v) {
+        value = v;
+        stopEventloop();
+      },
+      (e) {
+        exception = e;
+        stopEventloop();
+      }
+    );
+  } else {
+    Exception exception;
+
+    promise.then(
+      () => stopEventloop(),
+      (e) {
+        exception = e;
+        stopEventloop();
+      }
+    );
+  }
+
+  runEventloop();
   if(exception !is null) throw exception;
-  return er;
+  static if(!is(T == void)) {
+    return value;
+  }
 }
 
-ExitReason runEventloop(in void delegate() entryPoint, in Duration timeout = Duration.max)
+
+T runEventloop(T)(T delegate() dg)
 in {
-  assert(entryPoint !is null);
-}body {
-  return runEventloop(async(entryPoint));
+  assert(dg !is null);
+} body {
+  return runEventloop(async(dg));
 }
 
+
+void stopEventloop() @safe nothrow {
+  () @trusted {
+    uv_stop(localLoop);
+  }();
+}

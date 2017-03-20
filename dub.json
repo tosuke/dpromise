@@ -8,13 +8,17 @@
 	"license": "MIT",
 
 	"dependencies": {
-		"eventcore": "~>0.8.4"
+    "libuv": "~>1.11.0"
 	},
 
   "buildTypes": {
     "ddoc": {
       "dflags": [
         "-Xfdocs.json"
+      ],
+      "postBuildCommands": [
+        "dub run ddox -- filter docs.json --unittest-examples --only-documented",
+        "dub run scod -- generate-html --navigation-type=ModuleTree docs.json docs"
       ]
     }
   }
