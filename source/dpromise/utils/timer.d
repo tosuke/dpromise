@@ -1,4 +1,4 @@
-///
+/// Provides implementation of asynchronous timer.
 module dpromise.utils.timer;
 
 import core.time;
@@ -9,10 +9,12 @@ import deimos.libuv.uv, dpromise.internal.libuv;
 /++
 Sleep in asynchronous while $(D dur).
 
-Params:
-  dur = Duration of sleep
+If an error occurred, promise will be rejected.
 
-See_Also: core.thread.Thread.sleep
+Params:
+  dur = Duration of sleep.
+
+See_Also: $(HTTP https://dlang.org/phobos/core_thread.html#.Thread.sleep, core.thread.Thread.sleep)
 +/
 nothrow Promise!void sleepAsync(Duration dur) {
   return promise!void((res, rej) {
@@ -42,88 +44,65 @@ nothrow Promise!void sleepAsync(Duration dur) {
 
 
 /++
-Sleep in asynchronous while $(D dur) and after call $(D callback).
+Sleep in asynchronous while $(D dur) then calls the $(D callback) function.
+
+If an error occurred, the $(D callback) function will be called with the error.
 
 Params:
-  dur = Duration of sleep
-  callback = function call after sleep
+  dur = Duration of sleep.
+  callback = a function called when operation finished or an error occurred.
 +/
-nothrow @safe @nogc void sleepAsyncWithCallback(Duration dur, void function(Exception) nothrow callback)
-in {
-  assert(callback !is null);
-} body {
-  extern(C) nothrow @trusted static void systemCallback(uv_timer_t* handle) {
-    auto data = *cast(DataContainer!(typeof(callback))*)handle.data;
-    auto callback = data.data;
-    auto e = factory(data.error);
-    callback(e);
-
-    scope(exit) {
-      import core.stdc.stdlib : free;
-      free(handle.data);
-      free(handle);
-    }
-  }
-  asyncTimerBase(dur, Duration.zero, &systemCallback, cast(void*)callback);
-}
-
-///
-@safe unittest {
-  import dpromise.utils : runEventloop;
-  import std.datetime : Clock, UTC;
-
-  startTime = Clock.currTime(UTC());
-
-  sleepAsyncWithCallback(100.msecs,() nothrow {
-    try {
-      auto dur = Clock.currTime(UTC()) - startTime;
-      assert(dur + 4.msecs > 100.msecs);
-      assert(dur - 4.msecs < 100.msecs);
-    } catch(Exception e) {}
-  });
-
-  runEventloop();
-}
-static import std.datetime;
-private std.datetime.SysTime startTime;
-
-
-/// ditto
 nothrow @safe void sleepAsyncWithCallback(Duration dur, void delegate(Exception) nothrow callback)
 in {
   assert(callback !is null);
 } body {
-  extern(C) @trusted nothrow static void systemCallback(uv_timer_t* handle) {
-    auto data = *cast(DataContainer!(typeof(callback))*)handle.data;
-    auto callback = data.data;
-    auto e = factory(data.error);
-    callback(e);
+  struct Data {
+    int err;
+    void delegate(Exception) nothrow callback;
+  }
+
+  extern(C) nothrow @trusted static void ret(uv_timer_t* tm) {
+    auto data = cast(Data*)tm.data;
+    auto callback = data.callback;
+    callback(factory(data.err));
 
     scope(exit) {
       import core.memory : GC;
       import core.stdc.stdlib : free;
       GC.removeRoot(callback.ptr);
-      free(handle.data);
-      free(handle);
+      free(tm.data);
+      free(tm);
     }
   }
 
+  extern(C) nothrow @trusted static void onTimeout(uv_timer_t* tm) {
+    ret(tm);
+  }
+
   () @trusted nothrow {
+    import core.time : Duration, TickDuration, to;
+    auto timeout = to!("msecs", ulong)(cast(TickDuration)dur);
+
     import core.memory : GC;
+    auto timer = castMalloc!uv_timer_t;
+    uv_timer_init(localLoop, timer);
+
+    auto data = castMalloc!Data;
     GC.addRoot(callback.ptr);
+    data.callback = callback;
+    timer.data = data;
+
+    data.err = uv_timer_start(timer, &onTimeout, timeout, 0);
+    if(data.err != 0) ret(timer);
   }();
-
-  asyncTimerBase(dur, Duration.zero, &systemCallback, callback);
 }
-
 ///
 @safe unittest {
   import dpromise.utils : runEventloop;
   import std.datetime : Clock, UTC;
 
   auto startTime = Clock.currTime(UTC());
-
-  sleepAsyncWithCallback(100.msecs, () nothrow {
+  sleepAsyncWithCallback(100.msecs, (e) nothrow {
     try {
       auto dur = Clock.currTime(UTC()) - startTime;
       assert(dur + 4.msecs > 100.msecs);
@@ -132,25 +111,4 @@ in {
   });
 
   runEventloop();
-}
-
-
-
-private nothrow @safe @nogc void asyncTimerBase(T)(Duration timeout, Duration interval, uv_timer_cb callback, T data)
-in {
-  assert(callback !is null);
-} body {
-  auto timeout_msec = to!("msecs", ulong)(cast(TickDuration)timeout);
-  auto interval_msec = to!("msecs", ulong)(cast(TickDuration)interval);
-
-  () @trusted nothrow {
-    import core.memory : GC;
-    auto timer = castMalloc!(uv_timer_t);
-    uv_timer_init(localLoop, timer);
-    auto e = uv_timer_start(timer, callback, timeout_msec, interval_msec);
-    auto pdata = castMalloc!(DataContainer!T);
-    pdata.error = cast(uv_errno_t)e;
-    pdata.data = data;
-    timer.data = pdata;
-  }();
 }
